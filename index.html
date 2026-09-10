@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestionale Cassa - New Era & Los Takkinos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    .theme-newera { --primary: #eab308; --primary-dark: #ca8a04; --primary-bg: #fefce8; --accent-dark: #09090b; }
+    .theme-takkinos { --primary: #dc2626; --primary-dark: #b91c1c; --primary-bg: #fef2f2; --accent-dark: #991b1b; }
+    .editable-cell:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- Top Navigation Bar -->
+  <nav class="bg-slate-950/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Titolo Globale -->
+        <div class="flex items-center space-x-3">
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 font-black text-xl">
+            ⚽
+          </div>
+          <div>
+            <span class="text-lg font-black tracking-tight text-white flex items-center gap-2">
+              FINANCE HUB <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 font-semibold border border-slate-700">2025/26</span>
+            </span>
+            <p class="text-[11px] text-slate-400">New Era &bull; Los Takkinos</p>
+          </div>
+        </div>
+
+        <!-- Selettore Club / Schede -->
+        <div class="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800">
+          <button onclick="setClub('newera')" id="btn-club-newera" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-md">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-950"></span> NEW ERA (C7)
+          </button>
+          <button onclick="setClub('takkinos')" id="btn-club-takkinos" class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> LOS TAKKINOS (C5)
+          </button>
+        </div>
+
+        <!-- Utility Button -->
+        <div class="flex items-center gap-2">
+          <button onclick="exportActiveCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1.5 font-semibold">
+            <i class="fa-solid fa-file-export text-emerald-400"></i> <span class="hidden sm:inline">Esporta</span> CSV
+          </button>
+          <button onclick="resetToDefault()" class="bg-slate-800/60 hover:bg-rose-900/40 text-slate-400 hover:text-rose-400 text-xs p-2 rounded-lg border border-slate-700 transition" title="Ripristina Dati Iniziali">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- Club Dynamic Header / Banner -->
+  <div id="club-banner" class="border-b transition-all duration-300 py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-zinc-950 via-zinc-900 to-amber-950/40 border-amber-500/20">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+        <!-- Logo con upload interattivo -->
+        <div class="relative group cursor-pointer" onclick="document.getElementById('logo-file-input').click()">
+          <div id="club-logo-container" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-black border-2 border-amber-400 flex items-center justify-center overflow-hidden shadow-xl shadow-amber-500/10">
+            <!-- Immagine di Default -->
+            <div id="club-logo-placeholder" class="text-3xl font-black text-amber-400">NE</div>
+            <img id="club-logo-img" class="w-full h-full object-cover hidden" alt="Logo Squadra" />
+          </div>
+          <div class="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[10px] text-white font-medium transition">
+            <i class="fa-solid fa-camera mb-1"></i> Cambia Logo
+          </div>
+          <input type="file" id="logo-file-input" accept="image/*" class="hidden" onchange="uploadLogo(event)" />
+        </div>
+
+        <div>
+          <h1 id="club-name-title" class="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+            NEW ERA
+            <span id="club-badge-colors" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-400 text-black uppercase tracking-wider">Giallo &bull; Nero</span>
+          </h1>
+          <p id="club-sub-title" class="text-xs sm:text-sm text-slate-400 mt-1">Gestione finanziaria prima squadra calcio a 7 e quote sociali</p>
+        </div>
+      </div>
+
+      <!-- Quick KPI Totals -->
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <div class="flex-1 md:w-44 bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl shadow-inner">
+          <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Saldo in Cassa</p>
+          <p id="kpi-saldo" class="text-2xl font-black text-amber-400 mt-0.5">€ 0.00</p>
+        </div>
+        <div class="flex-1 md:w-44 bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl shadow-inner">
+          <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Quote Totali</p>
+          <p id="kpi-quote" class="text-2xl font-black text-white mt-0.5">€ 0.00</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Sub-Tabs: Cassa vs Quote Giocatori -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-6">
+    <div class="flex border-b border-slate-800 space-x-6 text-sm font-bold">
+      <button onclick="switchView('cassa')" id="btn-view-cassa" class="pb-3 border-b-2 text-white flex items-center gap-2 border-amber-400">
+        <i class="fa-solid fa-receipt"></i> Movimenti di Cassa
+      </button>
+      <button onclick="switchView('quote')" id="btn-view-quote" class="pb-3 border-b-2 text-slate-400 hover:text-slate-200 border-transparent flex items-center gap-2">
+        <i class="fa-solid fa-users"></i> Rosa & Quote Annuali
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Work Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6 flex-1">
+    
+    <!-- Action / Filter Bar -->
+    <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+      <div class="relative w-full sm:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+        <input id="search-input" oninput="renderTable()" type="text" placeholder="Cerca partita, fornitore, giocatore..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400 transition" />
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <button onclick="openAddModal()" id="btn-add-item" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/20">
+          <i class="fa-solid fa-plus"></i> <span id="btn-add-item-text">Aggiungi Movimento Cassa</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dynamic Table Container -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div class="overflow-x-auto max-h-[620px] overflow-y-auto">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead id="table-head" class="bg-slate-900/90 text-slate-400 sticky top-0 z-20 uppercase font-bold tracking-wider border-b border-slate-800">
+            <!-- Header iniettato dinamicamente -->
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-900 font-medium text-slate-200">
+            <!-- Righe iniettate dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal Aggiunta Record -->
+  <div id="add-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 id="modal-title" class="font-black text-base text-white">Nuova Registrazione</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+      
+      <!-- Campi dinamici modal -->
+      <div id="modal-fields" class="space-y-3"></div>
+
+      <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+        <button onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition">Annulla</button>
+        <button onclick="saveNewRecord()" id="modal-save-btn" class="px-5 py-2 text-xs font-black bg-amber-500 text-slate-950 rounded-xl transition shadow-lg">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dati originali integrati
+    const RAW_DATA = {
+      newera: {
+        name: "NEW ERA",
+        sub: "Gestione finanziaria prima squadra calcio a 7 e quote sociali",
+        colorsBadge: "Giallo &bull; Nero",
+        theme: "yellow",
+        cassa: [
+          ["residuo 24/25", -427, null, -427],
+          ["quote giocatori", 1900, null, 1473],
+          ["tesseramenti", null, 540, 933],
+          ["completi los takkinos +pallone", null, 190, 743],
+          ["24/09 vs Fc La Piazza", 15, null, 758],
+          ["29/09 Amichevole", 53, null, 811],
+          ["06/10 vs scannapapere", 15, null, 826],
+          ["13/10 amichevole c5", 37, null, 863],
+          ["15/10 vs Fc Peones", 15, null, 878],
+          ["21/10 vs Settebello", 15, null, 893],
+          ["23/10 amichevole c5", 25, null, 918],
+          ["27/10 vs Real Calle", 10, null, 928],
+          ["tesseramenti c5", null, 305, 623],
+          ["palloni e varie c5", null, 65, 558],
+          ["quote c5", 300, null, 858],
+          ["refill jackets", null, 120, 738],
+          ["sponsor neromo 1/2", 400, null, 1138],
+          ["5/11 vs LaPiazza", 15, null, 1153],
+          ["fondo cassa c5", null, 150, 1003],
+          ["10/11 vs Real Piovra", 15, null, 1018],
+          ["17/11 vs los galacticos", 15, null, 1033],
+          ["24/11 vs AC 7 Colonnata", 15, null, 1048],
+          ["abbonamento canva pro", null, 15, 1033],
+          ["10/12 vs FC peones", 15, null, 1048],
+          ["15/12 vs Scannapapere", null, 5, 1043],
+          ["amichevole 5/01", 20, null, 1063],
+          ["cena 8/01", null, 90, 973],
+          ["sponsor neromo 2/2", 400, null, 1373],
+          ["12/01 vs FCSB", 15, null, 1388],
+          ["abbonamento gemini ultra", null, 175, 1213],
+          ["21/01 vs hellas madonna", 15, null, 1228],
+          ["28/01 vs Alb Eagles", 5, null, 1233],
+          ["4/02 vs Compagni di merende", 5, null, 1238],
+          ["11/02 vs La Piazza", 5, null, 1243],
+          ["riassortimento new players", null, 420, 823],
+          ["25/02 vs los galacticos", 5, null, 828],
+          ["tesseramento passeggia", null, 20, 808],
+          ["tesseramento toccaceli", null, 20, 788],
+          ["09/03 vs Boca Junior", 15, null, 803],
+          ["11/03 vs peones", 5, null, 808],
+          ["Abbonamento CapCut", null, 110, 698],
+          ["23/03 vs scannapapere", 15, null, 713],
+          ["stampe new players", null, 60, 653],
+          ["30/03 vs fcsb", 15, null, 668],
+          ["8/04 vs Hellas madonna", 15, null, 683],
+          ["13/04 vs Alb Eagles", null, 5, 678],
+          ["20/04 vs compagni merende", 5, null, 683],
+          ["27/04 vs Herta Bellino", 15, null, 698],
+          ["29/04 cena neromo", null, 160, 538],
+          ["refill acqua", null, 40, 498],
+          ["amichevole 15/06", 33, null, 531],
+          ["amichevole 29/06", 20, null, 551],
+          ["ghiaccio", null, 15, 536],
+          ["amichevole 6/07", 20, null, 556],
+          ["amichevole 13/07", 38, null, 594],
+          ["amichevole 20/07", 20, null, 614],
+          ["amichevole 3/08", 20, null, 634],
+          ["amichevole 31/08", 20, null, 654],
+          ["amichevole 7/09", 20, null, 674],
+          ["refill acqua", null, 74, 600]
+        ],
+        quote: [
+          ["Cristiano Piani", 50, "14", "x", null],
+          ["Domenico De Stefano", 50, "3", "x", null],
+          ["Lorenzo Patricelli", 50, "80", "x", null],
+          ["Lorenzo Campanile", 50, "8", "x", null],
+          ["Gianluca D'errico", 50, "9", "x", 8],
+          ["Amedeo Bonfitto", 50, "10", "x", null],
+          ["Tommaso Forti", 50, "4", "x", null],
+          ["Simone Nencini", 50, "11", "x", null],
+          ["Giovanni Prezioso", 50, "69", "x", null],
+          ["Raffaele Fabozzi", 50, "12", "x", null],
+          ["Lorenzo Stefanelli", 50, "1", "x", null],
+          ["Andrea De Carlo", 50, "26", "x", null],
+          ["Manuel Melaccio", 50, "19", "x", null],
+          ["Biagio Basta", 50, "90", "x", null],
+          ["Pietro Carmignani", 50, "18", "x", null],
+          ["Simone Patricelli", 50, "23", "x", null],
+          ["Iulian Postolache", 50, "33", "x", null],
+          ["Marco Biagiotti", 50, "7", "x", null],
+          ["Alessio Pellegrino", null, "27", null, null],
+          ["Gabriele Giovannuzzi", 50, "77", "x", null],
+          ["Cosimo Fracassini", 50, "47", "x", null],
+          ["Lorenzo Betti", 150, "51", "x", null],
+          ["Niccolò Amerighi", 150, "5", "x", null],
+          ["Andrea Fantoni", 150, "44", "x", null],
+          ["Simone Cambi", 150, "2", "x", null],
+          ["Mirko Gasparini", 150, "22", "x", null],
+          ["Giovanni Passeggia", 150, "46", "x", null],
+          ["Diego Toccaceli", null, "45", "x", null]
+        ]
+      },
+      takkinos: {
+        name: "LOS TAKKINOS",
+        sub: "Gestione finanziaria squadra calcio a 5 e quote rosa",
+        colorsBadge: "Bianco &bull; Rosso",
+        theme: "red",
+        cassa: [
+          ["fondo cassa c5", 150, null, 150],
+          ["7/11 vs affediodio", 10, null, 160],
+          ["gettoni lavanderia", null, 70, 90],
+          ["13/11 vs aquila", 20, null, 110],
+          ["21/11 vs Mobil Munich", 10, null, 120],
+          ["27/11 vs san patrizio", null, 5, 115],
+          ["gettoni lavanderia", null, 10, 105],
+          ["4/12 vs Mamas friends", 5, null, 110],
+          ["11/12 vs dieci bruno", 5, null, 115],
+          ["18/12 vs weedstone", 5, null, 120],
+          ["15/01 vs Prima", 5, null, 125],
+          ["22/01 vs Aston Vaglia", null, 10, 115],
+          ["26/01 vs Ludopateam", null, 5, 110],
+          ["05/02 vs random team", null, 10, 100],
+          ["09/02 vs affediodio", null, 5, 95],
+          ["16/02 vs atletico bellas", 5, null, 100],
+          ["24/02 vs san patrizio", 10, null, 110],
+          ["5/03 vs prima", null, 10, 100],
+          ["11/03 vs Aston Vaglia", 10, null, 110],
+          ["16/03 vs ludopateam", 10, null, 120],
+          ["26/03 vs random", null, 10, 110],
+          ["2/04 vs aerriafiofio", null, 5, 105],
+          ["10/04 vs atletico bellas", 5, null, 110],
+          ["16/04 vs san patrizio", null, 10, 100]
+        ],
+        quote: [
+          ["Eros Picchi", 30, null, "x", null],
+          ["Alessio Gentile", 30, null, "x", null],
+          ["Claudio Bianchi", 30, null, "x", null],
+          ["Lorenzo Santolini", 30, null, "x", null],
+          ["Marco Toccaceli", 30, null, "x", null],
+          ["Raffaele Fazzi", 30, null, "x", null],
+          ["Lorenzo Naldini", null, null, null, null],
+          ["Lorenzo Marconcini", 30, null, "x", null],
+          ["Cosimo Pieri", 30, null, "x", null],
+          ["Filippo Masi", 30, null, "x", null],
+          ["Riccardo Luchetti", 30, null, "x", null]
+        ]
+      }
+    };
+
+    let activeClub = 'newera'; // 'newera' or 'takkinos'
+    let activeView = 'cassa';  // 'cassa' or 'quote'
+    let state = JSON.parse(localStorage.getItem('cassa_modern_state')) || RAW_DATA;
+
+    function saveState() {
+      localStorage.setItem('cassa_modern_state', JSON.stringify(state));
+      recalculate();
+      renderAll();
+    }
+
+    function resetToDefault() {
+      if(confirm("Vuoi davvero ripristinare tutti i dati originali delle squadre?")) {
+        state = JSON.parse(JSON.stringify(RAW_DATA));
+        localStorage.removeItem('logo_newera');
+        localStorage.removeItem('logo_takkinos');
+        saveState();
+      }
+    }
+
+    function recalculate() {
+      ['newera', 'takkinos'].forEach(club => {
+        let running = 0;
+        state[club].cassa.forEach(row => {
+          const entrata = parseFloat(row[1]) || 0;
+          const uscita = parseFloat(row[2]) || 0;
+          running += (entrata - uscita);
+          row[3] = running;
+        });
+      });
+    }
+
+    function setClub(club) {
+      activeClub = club;
+      const isNE = club === 'newera';
+      
+      // Update top switchers
+      const btnNE = document.getElementById('btn-club-newera');
+      const btnTAK = document.getElementById('btn-club-takkinos');
+      if (isNE) {
+        btnNE.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500 text-slate-950 shadow-md";
+        btnTAK.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+      } else {
+        btnTAK.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-red-600 text-white shadow-md";
+        btnNE.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-400 hover:text-white";
+      }
+
+      // Update Banner Colors & Theme
+      const banner = document.getElementById('club-banner');
+      const nameTitle = document.getElementById('club-name-title');
+      const colorsBadge = document.getElementById('club-badge-colors');
+      const subTitle = document.getElementById('club-sub-title');
+      const logoBox = document.getElementById('club-logo-container');
+      const logoPlace = document.getElementById('club-logo-placeholder');
+      const btnAdd = document.getElementById('btn-add-item');
+      const kpiSaldo = document.getElementById('kpi-saldo');
+
+      if (isNE) {
+        banner.className = "border-b transition-all duration-300 py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-zinc-950 via-zinc-900 to-amber-950/40 border-amber-500/20";
+        colorsBadge.className = "text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-400 text-black uppercase tracking-wider";
+        colorsBadge.innerHTML = state.newera.colorsBadge;
+        logoBox.className = "w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-black border-2 border-amber-400 flex items-center justify-center overflow-hidden shadow-xl shadow-amber-500/10";
+        logoPlace.textContent = "NE";
+        logoPlace.className = "text-3xl font-black text-amber-400";
+        btnAdd.className = "w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/20";
+        kpiSaldo.className = "text-2xl font-black text-amber-400 mt-0.5";
+      } else {
+        banner.className = "border-b transition-all duration-300 py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-zinc-950 via-red-950/40 to-zinc-950 border-red-500/20";
+        colorsBadge.className = "text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-600 text-white uppercase tracking-wider";
+        colorsBadge.innerHTML = state.takkinos.colorsBadge;
+        logoBox.className = "w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white border-2 border-red-600 flex items-center justify-center overflow-hidden shadow-xl shadow-red-500/10";
+        logoPlace.textContent = "LT";
+        logoPlace.className = "text-3xl font-black text-red-600";
+        btnAdd.className = "w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white text-xs font-black px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-red-600/20";
+        kpiSaldo.className = "text-2xl font-black text-red-500 mt-0.5";
+      }
+
+      nameTitle.innerHTML = `${state[club].name} <span id="club-badge-colors" class="${colorsBadge.className}">${state[club].colorsBadge}</span>`;
+      subTitle.textContent = state[club].sub;
+
+      loadLogo();
+      updateSubTabs();
+      renderAll();
+    }
+
+    function switchView(view) {
+      activeView = view;
+      updateSubTabs();
+      renderAll();
+    }
+
+    function updateSubTabs() {
+      const isNE = activeClub === 'newera';
+      const activeColor = isNE ? 'border-amber-400 text-amber-400' : 'border-red-500 text-red-500';
+
+      const btnCassa = document.getElementById('btn-view-cassa');
+      const btnQuote = document.getElementById('btn-view-quote');
+      const btnAddText = document.getElementById('btn-add-item-text');
+
+      if (activeView === 'cassa') {
+        btnCassa.className = `pb-3 border-b-2 font-bold flex items-center gap-2 ${activeColor}`;
+        btnQuote.className = "pb-3 border-b-2 text-slate-400 hover:text-slate-200 border-transparent flex items-center gap-2";
+        btnAddText.textContent = `Nuovo Movimento Cassa ${state[activeClub].name}`;
+      } else {
+        btnQuote.className = `pb-3 border-b-2 font-bold flex items-center gap-2 ${activeColor}`;
+        btnCassa.className = "pb-3 border-b-2 text-slate-400 hover:text-slate-200 border-transparent flex items-center gap-2";
+        btnAddText.textContent = `Aggiungi Giocatore in Rosa`;
+      }
+    }
+
+    function renderKPIs() {
+      const cassa = state[activeClub].cassa;
+      const quote = state[activeClub].quote;
+      const currentSaldo = cassa.length ? cassa[cassa.length - 1][3] : 0;
+      const totQuote = quote.reduce((acc, r) => acc + (parseFloat(r[1]) || 0), 0);
+
+      document.getElementById('kpi-saldo').textContent = `€ ${Number(currentSaldo).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+      document.getElementById('kpi-quote').textContent = `€ ${Number(totQuote).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+    }
+
+    function renderTable() {
+      const search = (document.getElementById('search-input').value || '').toLowerCase();
+      const thead = document.getElementById('table-head');
+      const tbody = document.getElementById('table-body');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      if (activeView === 'cassa') {
+        // Headers Cassa
+        thead.innerHTML = `
+          <tr>
+            <th class="py-3 px-4 w-12 text-slate-500">#</th>
+            <th class="py-3 px-4">Motivo / Descrizione</th>
+            <th class="py-3 px-4 text-right">Entrata (€)</th>
+            <th class="py-3 px-4 text-right">Uscita (€)</th>
+            <th class="py-3 px-4 text-right">Saldo Progr. (€)</th>
+            <th class="py-3 px-4 w-16 text-center">Azioni</th>
+          </tr>
+        `;
+
+        const rows = state[activeClub].cassa;
+        rows.forEach((r, idx) => {
+          const desc = String(r[0] || '');
+          if (search && !desc.toLowerCase().includes(search)) return;
+
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-900/60 transition group border-b border-slate-900";
+          tr.innerHTML = `
+            <td class="py-3 px-4 text-slate-500 font-mono text-[11px]">${idx + 1}</td>
+            <td class="py-3 px-4 font-semibold text-slate-100">
+              <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('cassa', ${idx}, 0, this.innerText)">${desc}</span>
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-emerald-400">
+              <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('cassa', ${idx}, 1, this.innerText)">${r[1] !== null && r[1] !== undefined ? r[1] : '-'}</span>
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-rose-400">
+              <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('cassa', ${idx}, 2, this.innerText)">${r[2] !== null && r[2] !== undefined ? r[2] : '-'}</span>
+            </td>
+            <td class="py-3 px-4 text-right font-black text-slate-100">
+              € ${Number(r[3] || 0).toLocaleString('it-IT', {minimumFractionDigits: 2})}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="deleteRecord('cassa', ${idx})" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition p-1" title="Elimina">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        // Headers Quote
+        thead.innerHTML = `
+          <tr>
+            <th class="py-3 px-4 w-12 text-slate-500">#</th>
+            ${activeClub === 'newera' ? '<th class="py-3 px-4 w-20 text-center">N. Maglia</th>' : ''}
+            <th class="py-3 px-4">Nome Giocatore</th>
+            <th class="py-3 px-4 text-right">Quota Versata (€)</th>
+            <th class="py-3 px-4 text-center">Tesseramento</th>
+            ${activeClub === 'newera' ? '<th class="py-3 px-4 text-right">Debito (€)</th>' : ''}
+            <th class="py-3 px-4 w-16 text-center">Azioni</th>
+          </tr>
+        `;
+
+        const rows = state[activeClub].quote;
+        rows.forEach((r, idx) => {
+          const nome = String(r[0] || '');
+          if (search && !nome.toLowerCase().includes(search)) return;
+
+          const isTesserato = r[3] && String(r[3]).toLowerCase().includes('x');
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-900/60 transition group border-b border-slate-900";
+
+          tr.innerHTML = `
+            <td class="py-3 px-4 text-slate-500 font-mono text-[11px]">${idx + 1}</td>
+            ${activeClub === 'newera' ? `
+              <td class="py-3 px-4 text-center">
+                <span class="inline-block px-2 py-0.5 bg-slate-900 text-amber-400 font-black rounded border border-slate-800 text-xs">
+                  <span class="editable-cell cursor-text" contenteditable="true" onblur="updateCell('quote', ${idx}, 2, this.innerText)">${r[2] || '-'}</span>
+                </span>
+              </td>
+            ` : ''}
+            <td class="py-3 px-4 font-bold text-slate-100">
+              <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('quote', ${idx}, 0, this.innerText)">${nome}</span>
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-slate-200">
+              <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('quote', ${idx}, 1, this.innerText)">${r[1] !== null ? r[1] : '-'}</span>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="toggleTess(${idx})" class="px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition ${isTesserato ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' : 'bg-slate-900 text-slate-500 border border-slate-800'}">
+                ${isTesserato ? '<i class="fa-solid fa-check mr-1"></i> Tesserato' : '<i class="fa-solid fa-clock mr-1"></i> Da Tesserare'}
+              </button>
+            </td>
+            ${activeClub === 'newera' ? `
+              <td class="py-3 px-4 text-right font-bold ${r[4] ? 'text-amber-400' : 'text-slate-600'}">
+                <span class="editable-cell px-1.5 py-0.5 rounded cursor-text" contenteditable="true" onblur="updateCell('quote', ${idx}, 4, this.innerText)">${r[4] ? '€ ' + r[4] : '-'}</span>
+              </td>
+            ` : ''}
+            <td class="py-3 px-4 text-center">
+              <button onclick="deleteRecord('quote', ${idx})" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition p-1" title="Elimina">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function updateCell(tableType, rowIdx, colIdx, rawVal) {
+      let val = rawVal.replace('€', '').trim();
+      if (val === '-' || val === '') {
+        state[activeClub][tableType][rowIdx][colIdx] = null;
+      } else if (!isNaN(val.replace(',', '.'))) {
+        state[activeClub][tableType][rowIdx][colIdx] = parseFloat(val.replace(',', '.'));
+      } else {
+        state[activeClub][tableType][rowIdx][colIdx] = val;
+      }
+      saveState();
+    }
+
+    function toggleTess(idx) {
+      const cur = state[activeClub].quote[idx][3];
+      state[activeClub].quote[idx][3] = (cur && String(cur).toLowerCase().includes('x')) ? null : 'x';
+      saveState();
+    }
+
+    function deleteRecord(tableType, idx) {
+      if (confirm("Sei sicuro di voler eliminare questa voce?")) {
+        state[activeClub][tableType].splice(idx, 1);
+        saveState();
+      }
+    }
+
+    // Gestione Logo Upload
+    function uploadLogo(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const b64 = evt.target.result;
+        localStorage.setItem(`logo_${activeClub}`, b64);
+        loadLogo();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadLogo() {
+      const saved = localStorage.getItem(`logo_${activeClub}`);
+      const img = document.getElementById('club-logo-img');
+      const ph = document.getElementById('club-logo-placeholder');
+      if (saved) {
+        img.src = saved;
+        img.classList.remove('hidden');
+        ph.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        ph.classList.remove('hidden');
+      }
+    }
+
+    // Modal Inserimento
+    function openAddModal() {
+      const fields = document.getElementById('modal-fields');
+      const title = document.getElementById('modal-title');
+      const saveBtn = document.getElementById('modal-save-btn');
+      const isNE = activeClub === 'newera';
+
+      saveBtn.className = isNE 
+        ? "px-5 py-2 text-xs font-black bg-amber-500 text-slate-950 rounded-xl transition shadow-lg"
+        : "px-5 py-2 text-xs font-black bg-red-600 text-white rounded-xl transition shadow-lg";
+
+      if (activeView === 'cassa') {
+        title.textContent = `Nuovo Movimento - ${state[activeClub].name}`;
+        fields.innerHTML = `
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 uppercase">Descrizione / Partita</label>
+            <input id="modal-f1" type="text" placeholder="es. Partita vs Avversari, materiale..." class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase">Tipo</label>
+              <select id="modal-tipo" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100">
+                <option value="in">Entrata (+)</option>
+                <option value="out">Uscita (-)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase">Importo (€)</label>
+              <input id="modal-f2" type="number" step="0.5" placeholder="0.00" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none" />
+            </div>
+          </div>
+        `;
+      } else {
+        title.textContent = `Aggiungi Giocatore in Rosa - ${state[activeClub].name}`;
+        fields.innerHTML = `
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 uppercase">Nome e Cognome</label>
+            <input id="modal-f1" type="text" placeholder="es. Mario Rossi" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            ${isNE ? `
+              <div>
+                <label class="text-[11px] font-bold text-slate-400 uppercase">Numero Maglia</label>
+                <input id="modal-f3" type="text" placeholder="es. 10" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none" />
+              </div>
+            ` : ''}
+            <div>
+              <label class="text-[11px] font-bold text-slate-400 uppercase">Quota Versata (€)</label>
+              <input id="modal-f2" type="number" placeholder="50" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none" />
+            </div>
+          </div>
+          <div class="flex items-center gap-2 pt-2">
+            <input id="modal-f4" type="checkbox" checked class="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-800" />
+            <label for="modal-f4" class="text-xs text-slate-300 font-semibold">Tesseramento completato</label>
+          </div>
+        `;
+      }
+
+      document.getElementById('add-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('add-modal').classList.add('hidden');
+    }
+
+    function saveNewRecord() {
+      const f1 = document.getElementById('modal-f1').value.trim();
+      if (!f1) return alert("Inserisci una descrizione o un nome valido.");
+
+      if (activeView === 'cassa') {
+        const tipo = document.getElementById('modal-tipo').value;
+        const val = parseFloat(document.getElementById('modal-f2').value) || 0;
+        state[activeClub].cassa.push([
+          f1,
+          tipo === 'in' ? val : null,
+          tipo === 'out' ? val : null,
+          0
+        ]);
+      } else {
+        const quota = parseFloat(document.getElementById('modal-f2').value) || null;
+        const num = document.getElementById('modal-f3') ? document.getElementById('modal-f3').value.trim() : null;
+        const tess = document.getElementById('modal-f4').checked ? 'x' : null;
+        state[activeClub].quote.push([f1, quota, num, tess, null]);
+      }
+
+      closeModal();
+      saveState();
+    }
+
+    // Export CSV
+    function exportActiveCSV() {
+      const isCassa = activeView === 'cassa';
+      let csv = "";
+      if (isCassa) {
+        csv = "MOTIVO,ENTRATA,USCITA,SALDO\n";
+        state[activeClub].cassa.forEach(r => {
+          csv += `"${r[0]}",${r[1] || 0},${r[2] || 0},${r[3] || 0}\n`;
+        });
+      } else {
+        csv = "NOME,QUOTA,NUMERO,TESSER,DEBITI\n";
+        state[activeClub].quote.forEach(r => {
+          csv += `"${r[0]}",${r[1] || ''},"${r[2] || ''}","${r[3] || ''}",${r[4] || ''}\n`;
+        });
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state[activeClub].name}_${activeView}.csv`;
+      a.click();
+    }
+
+    function renderAll() {
+      renderKPIs();
+      renderTable();
+    }
+
+    // Avvio
+    recalculate();
+    setClub('newera');
+  </script>
+</body>
+</html>
